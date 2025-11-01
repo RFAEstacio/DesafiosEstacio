@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXIMO_TERRITORIOS 5
+#define TAMANHO_MAXIMO_NOME 30
+#define TAMANHO_MAXIMO_COR 10
+
+typedef struct {
+    char nome[TAMANHO_MAXIMO_NOME];
+    char corExercito[TAMANHO_MAXIMO_COR];
+    int quantidadeTropas;
+} Territorio;
+
+/* Remove caractere de nova linha deixado pela função fgets */
+void removerNovaLinha(char *texto) {
+    size_t comprimento = strlen(texto);
+    if (comprimento > 0 && texto[comprimento-1] == '\n') 
+        texto[comprimento-1] = '\0';
+}
+
+/* Valida e corrige nome do território se estiver vazio */
+void processarNomeTerritorio(Territorio *territorio, int indice) {
+    if (strlen(territorio->nome) == 0) {
+        printf("Nome vazio. Definindo como 'Territorio%d'.\n", indice+1);
+        snprintf(territorio->nome, TAMANHO_MAXIMO_NOME, "Territorio%d", indice+1);
+    }
+}
+
+/* Valida e corrige cor do exército se estiver vazia */
+void processarCorExercito(Territorio *territorio) {
+    if (strlen(territorio->corExercito) == 0) 
+        strcpy(territorio->corExercito, "neutro");
+}
+
+/* Limpa o buffer de entrada do teclado */
+void limparBufferEntrada() {
+    int caractere;
+    while ((caractere = getchar()) != '\n' && caractere != EOF);
+}
+
+/* Lê e valida a quantidade de tropas */
+void lerQuantidadeTropas(Territorio *territorio) {
+    printf("Quantidade de tropas: ");
+    while (scanf("%d", &territorio->quantidadeTropas) != 1) {
+        limparBufferEntrada();
+        printf("Valor inválido. Por favor, digite um número inteiro: ");
+    }
+    limparBufferEntrada(); // Limpa o newline restante
+}
+
+/* Cadastra um território individual */
+void cadastrarTerritorio(Territorio *territorio, int numeroTerritorio) {
+    printf("\n=== Cadastro do Territorio %d ===\n", numeroTerritorio);
+    
+    printf("Nome: ");
+    fgets(territorio->nome, TAMANHO_MAXIMO_NOME, stdin);
+    removerNovaLinha(territorio->nome);
+    processarNomeTerritorio(territorio, numeroTerritorio-1);
+    
+    printf("Cor do exército (ex: vermelho, azul): ");
+    fgets(territorio->corExercito, TAMANHO_MAXIMO_COR, stdin);
+    removerNovaLinha(territorio->corExercito);
+    processarCorExercito(territorio);
+    
+    lerQuantidadeTropas(territorio);
+}
+
+/* Cadastra todos os territórios do mapa */
+void cadastrarTodosTerritorios(Territorio mapa[], int totalTerritorios) {
+    for (int indice = 0; indice < totalTerritorios; indice++) {
+        cadastrarTerritorio(&mapa[indice], indice+1);
+    }
+}
+
+/* Exibe os territórios cadastrados */
+void exibirTerritoriosCadastrados(Territorio mapa[], int totalTerritorios) {
+    printf("\n=== TERRITORIOS REGISTRADOS ===\n");
+    for (int indice = 0; indice < totalTerritorios; indice++) {
+        printf("%d) Nome: %-15s | Cor: %-10s | Tropas: %d\n", 
+               indice+1, 
+               mapa[indice].nome, 
+               mapa[indice].corExercito, 
+               mapa[indice].quantidadeTropas);
+    }
+}
+
+/* Função principal */
+int main() {
+    Territorio mapa[MAXIMO_TERRITORIOS];
+    
+    printf("Bem-vindo ao Desafio War Estruturado - Nível Novato\n");
+    printf("Você irá cadastrar %d territórios para o jogo.\n", MAXIMO_TERRITORIOS);
+    
+    cadastrarTodosTerritorios(mapa, MAXIMO_TERRITORIOS);
+    exibirTerritoriosCadastrados(mapa, MAXIMO_TERRITORIOS);
+    
+    printf("\nCadastro concluído com sucesso!\n");
+    return 0;
+}
