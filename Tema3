@@ -1,0 +1,259 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+
+#define TAMANHO_FILA 5
+#define TAMANHO_PILHA 3
+#define TOTAL_TIPOS_PECAS 7
+#define MAXIMO_ID 1000
+
+// Estrutura para representar uma peça do Tetris
+typedef struct {
+    char tipo[10];  // Tipo da peça: I, O, T, L, etc.
+    int identificador;         // Identificador único
+} Peca;
+
+// Estrutura da Fila Circular
+typedef struct {
+    Peca pecas[TAMANHO_FILA];
+    int posicaoFrente;
+    int posicaoTras;
+    int totalElementos;
+} FilaCircular;
+
+// Estrutura da Pilha
+typedef struct {
+    Peca pecas[TAMANHO_PILHA];
+    int posicaoTopo;
+    int totalElementos;
+} PilhaReserva;
+
+// Protótipos das funções
+void inicializarFilaCircular(FilaCircular *fila);
+void inicializarPilhaReserva(PilhaReserva *pilha);
+Peca criarPecaAleatoria();
+void adicionarPecaFila(FilaCircular *fila, Peca peca);
+Peca removerPecaFila(FilaCircular *fila);
+void adicionarPecaPilha(PilhaReserva *pilha, Peca peca);
+Peca removerPecaPilha(PilhaReserva *pilha);
+void mostrarSituacaoAtual(FilaCircular *fila, PilhaReserva *pilha);
+int verificarFilaVazia(FilaCircular *fila);
+int verificarFilaCheia(FilaCircular *fila);
+int verificarPilhaVazia(PilhaReserva *pilha);
+int verificarPilhaCheia(PilhaReserva *pilha);
+void limparBufferEntrada();
+
+int main() {
+    srand(time(NULL)); // Inicializa semente para números aleatórios
+    
+    FilaCircular filaPecas;
+    PilhaReserva pilhaReserva;
+    
+    // Inicializa estruturas de dados
+    inicializarFilaCircular(&filaPecas);
+    inicializarPilhaReserva(&pilhaReserva);
+    
+    // Preenche a fila inicial com 5 peças
+    for (int contador = 0; contador < TAMANHO_FILA; contador++) {
+        adicionarPecaFila(&filaPecas, criarPecaAleatoria());
+    }
+    
+    int opcaoEscolhida;
+    
+    printf("=== TETRIS STACK - NIVEL AVENTUREIRO ===\n");
+    printf("Sistema de Gerenciamento de Pecas\n\n");
+    
+    do {
+        mostrarSituacaoAtual(&filaPecas, &pilhaReserva);
+        
+        printf("\n=== MENU PRINCIPAL ===\n");
+        printf("1 - Jogar peca (remover da frente da fila)\n");
+        printf("2 - Reservar peca (mover da fila para pilha)\n");
+        printf("3 - Usar peca reservada (remover da pilha)\n");
+        printf("0 - Sair do programa\n");
+        printf("Digite sua opcao: ");
+        scanf("%d", &opcaoEscolhida);
+        limparBufferEntrada();
+        
+        switch (opcaoEscolhida) {
+            case 1: // Jogar peça da fila
+                if (!verificarFilaVazia(&filaPecas)) {
+                    Peca pecaUtilizada = removerPecaFila(&filaPecas);
+                    printf("\n>>> Peca utilizada: %s (ID: %d)\n", pecaUtilizada.tipo, pecaUtilizada.identificador);
+                    adicionarPecaFila(&filaPecas, criarPecaAleatoria()); // Repõe peça automaticamente
+                } else {
+                    printf("\n>>> Erro: Nao ha pecas na fila!\n");
+                }
+                break;
+                
+            case 2: // Reservar peça da fila para pilha
+                if (!verificarFilaVazia(&filaPecas)) {
+                    if (!verificarPilhaCheia(&pilhaReserva)) {
+                        Peca pecaReservada = removerPecaFila(&filaPecas);
+                        adicionarPecaPilha(&pilhaReserva, pecaReservada);
+                        printf("\n>>> Peca reservada: %s (ID: %d)\n", pecaReservada.tipo, pecaReservada.identificador);
+                        adicionarPecaFila(&filaPecas, criarPecaAleatoria()); // Repõe peça automaticamente
+                    } else {
+                        printf("\n>>> Erro: Capacidade maxima da pilha de reserva atingida! (maximo: %d)\n", TAMANHO_PILHA);
+                    }
+                } else {
+                    printf("\n>>> Erro: Nao ha pecas na fila!\n");
+                }
+                break;
+                
+            case 3: // Usar peça da pilha de reserva
+                if (!verificarPilhaVazia(&pilhaReserva)) {
+                    Peca pecaDaReserva = removerPecaPilha(&pilhaReserva);
+                    printf("\n>>> Peca da reserva utilizada: %s (ID: %d)\n", pecaDaReserva.tipo, pecaDaReserva.identificador);
+                } else {
+                    printf("\n>>> Erro: Nenhuma peca disponivel na reserva!\n");
+                }
+                break;
+                
+            case 0:
+                printf("\n>>> Encerrando programa...\n");
+                break;
+                
+            default:
+                printf("\n>>> Opcao invalida! Por favor, tente novamente.\n");
+                break;
+        }
+        
+        printf("\n");
+        
+    } while (opcaoEscolhida != 0);
+    
+    return 0;
+}
+
+// Inicializa a fila circular com valores padrão
+void inicializarFilaCircular(FilaCircular *fila) {
+    fila->posicaoFrente = 0;
+    fila->posicaoTras = -1;
+    fila->totalElementos = 0;
+}
+
+// Inicializa a pilha de reserva com valores padrão
+void inicializarPilhaReserva(PilhaReserva *pilha) {
+    pilha->posicaoTopo = -1;
+    pilha->totalElementos = 0;
+}
+
+// Gera uma peça aleatória com tipo e ID único
+Peca criarPecaAleatoria() {
+    Peca novaPeca;
+    
+    // Tipos de peças disponíveis no Tetris
+    char tiposPecas[TOTAL_TIPOS_PECAS][10] = {"I", "O", "T", "L", "J", "S", "Z"};
+    
+    // Seleciona tipo aleatório
+    int indiceAleatorio = rand() % TOTAL_TIPOS_PECAS;
+    strcpy(novaPeca.tipo, tiposPecas[indiceAleatorio]);
+    
+    // Gera identificador único
+    novaPeca.identificador = rand() % MAXIMO_ID;
+    
+    return novaPeca;
+}
+
+// Adiciona uma peça no final da fila circular
+void adicionarPecaFila(FilaCircular *fila, Peca peca) {
+    if (!verificarFilaCheia(fila)) {
+        fila->posicaoTras = (fila->posicaoTras + 1) % TAMANHO_FILA;
+        fila->pecas[fila->posicaoTras] = peca;
+        fila->totalElementos++;
+    }
+}
+
+// Remove e retorna a peça da frente da fila circular
+Peca removerPecaFila(FilaCircular *fila) {
+    Peca pecaInvalida = {"", -1}; // Valor padrão para erro
+    
+    if (!verificarFilaVazia(fila)) {
+        Peca pecaRemovida = fila->pecas[fila->posicaoFrente];
+        fila->posicaoFrente = (fila->posicaoFrente + 1) % TAMANHO_FILA;
+        fila->totalElementos--;
+        return pecaRemovida;
+    }
+    
+    return pecaInvalida;
+}
+
+// Adiciona uma peça no topo da pilha de reserva
+void adicionarPecaPilha(PilhaReserva *pilha, Peca peca) {
+    if (!verificarPilhaCheia(pilha)) {
+        pilha->posicaoTopo++;
+        pilha->pecas[pilha->posicaoTopo] = peca;
+        pilha->totalElementos++;
+    }
+}
+
+// Remove e retorna a peça do topo da pilha de reserva
+Peca removerPecaPilha(PilhaReserva *pilha) {
+    Peca pecaInvalida = {"", -1}; // Valor padrão para erro
+    
+    if (!verificarPilhaVazia(pilha)) {
+        Peca pecaRemovida = pilha->pecas[pilha->posicaoTopo];
+        pilha->posicaoTopo--;
+        pilha->totalElementos--;
+        return pecaRemovida;
+    }
+    
+    return pecaInvalida;
+}
+
+// Exibe o estado atual da fila e pilha
+void mostrarSituacaoAtual(FilaCircular *fila, PilhaReserva *pilha) {
+    printf("\n--- SITUACAO ATUAL DO JOGO ---\n");
+    
+    // Exibe fila de peças futuras
+    printf("FILA (Proximas Pecas): ");
+    if (verificarFilaVazia(fila)) {
+        printf("Vazia");
+    } else {
+        int indiceAtual = fila->posicaoFrente;
+        for (int contador = 0; contador < fila->totalElementos; contador++) {
+            printf("[%s(ID:%d)] ", fila->pecas[indiceAtual].tipo, fila->pecas[indiceAtual].identificador);
+            indiceAtual = (indiceAtual + 1) % TAMANHO_FILA;
+        }
+    }
+    printf("\n");
+    
+    // Exibe pilha de reserva
+    printf("PILHA (Reserva):      ");
+    if (verificarPilhaVazia(pilha)) {
+        printf("Vazia");
+    } else {
+        for (int contador = 0; contador <= pilha->posicaoTopo; contador++) {
+            printf("[%s(ID:%d)] ", pilha->pecas[contador].tipo, pilha->pecas[contador].identificador);
+        }
+    }
+    printf("\n");
+}
+
+// Verifica se a fila circular está vazia
+int verificarFilaVazia(FilaCircular *fila) {
+    return fila->totalElementos == 0;
+}
+
+// Verifica se a fila circular está cheia
+int verificarFilaCheia(FilaCircular *fila) {
+    return fila->totalElementos == TAMANHO_FILA;
+}
+
+// Verifica se a pilha de reserva está vazia
+int verificarPilhaVazia(PilhaReserva *pilha) {
+    return pilha->posicaoTopo == -1;
+}
+
+// Verifica se a pilha de reserva está cheia
+int verificarPilhaCheia(PilhaReserva *pilha) {
+    return pilha->posicaoTopo == TAMANHO_PILHA - 1;
+}
+
+// Limpa o buffer de entrada do teclado
+void limparBufferEntrada() {
+    int caractere;
+    while ((caractere = getchar()) != '\n' && caractere != EOF);
+}
