@@ -1,0 +1,175 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define CAPACIDADE_MAXIMA_MOCHILA 10
+#define TAMANHO_MAXIMO_NOME 30
+#define TAMANHO_MAXIMO_TIPO 20
+
+// Definição da estrutura Item
+typedef struct {
+    char nome[TAMANHO_MAXIMO_NOME];
+    char tipo[TAMANHO_MAXIMO_TIPO];
+    int quantidade;
+} Item;
+
+// Variáveis globais para gerenciamento da mochila
+Item mochila[CAPACIDADE_MAXIMA_MOCHILA];
+int quantidadeItens = 0;
+
+// Função para limpar buffer de entrada
+void limparBufferEntrada() {
+    int caractere;
+    while ((caractere = getchar()) != '\n' && caractere != EOF);
+}
+
+// Função para verificar se a mochila está cheia
+int mochilaEstaCheia() {
+    return quantidadeItens >= CAPACIDADE_MAXIMA_MOCHILA;
+}
+
+// Função para verificar se a mochila está vazia
+int mochilaEstaVazia() {
+    return quantidadeItens == 0;
+}
+
+// Função para encontrar item pelo nome
+int encontrarIndiceItem(const char *nomeItem) {
+    for (int indice = 0; indice < quantidadeItens; indice++) {
+        if (strcmp(mochila[indice].nome, nomeItem) == 0) {
+            return indice;
+        }
+    }
+    return -1; // Item não encontrado
+}
+
+// Função para adicionar novo item à mochila
+void adicionarItem() {
+    if (mochilaEstaCheia()) {
+        printf("\n[ERRO] Mochila cheia! Nao e possivel adicionar mais itens.\n");
+        return;
+    }
+
+    Item novoItem;
+    
+    printf("\n--- ADICIONAR NOVO ITEM ---\n");
+    
+    printf("Nome do item: ");
+    scanf(" %[^\n]", novoItem.nome);
+    limparBufferEntrada();
+    
+    printf("Tipo do item (arma, municao, cura, etc.): ");
+    scanf(" %[^\n]", novoItem.tipo);
+    limparBufferEntrada();
+    
+    printf("Quantidade: ");
+    while (scanf("%d", &novoItem.quantidade) != 1 || novoItem.quantidade <= 0) {
+        limparBufferEntrada();
+        printf("[ERRO] Quantidade invalida. Digite um numero positivo: ");
+    }
+    limparBufferEntrada();
+
+    // Adiciona o item à mochila
+    mochila[quantidadeItens] = novoItem;
+    quantidadeItens++;
+
+    printf("\n[SUCESSO] Item '%s' adicionado com sucesso a mochila!\n", novoItem.nome);
+}
+
+// Função para remover item da mochila
+void removerItem() {
+    if (mochilaEstaVazia()) {
+        printf("\n[ERRO] Mochila vazia. Nenhum item para remover.\n");
+        return;
+    }
+
+    char nomeItem[TAMANHO_MAXIMO_NOME];
+    
+    printf("\n--- REMOVER ITEM ---\n");
+    printf("Digite o nome do item a remover: ");
+    scanf(" %[^\n]", nomeItem);
+    limparBufferEntrada();
+
+    int indice = encontrarIndiceItem(nomeItem);
+    
+    if (indice != -1) {
+        // Remove item deslocando os itens seguintes
+        for (int posicao = indice; posicao < quantidadeItens - 1; posicao++) {
+            mochila[posicao] = mochila[posicao + 1];
+        }
+        quantidadeItens--;
+        printf("\n[SUCESSO] Item '%s' removido com sucesso!\n", nomeItem);
+    } else {
+        printf("\n[ERRO] Item '%s' nao encontrado na mochila.\n", nomeItem);
+    }
+}
+
+// Função para exibir todos os itens da mochila
+void exibirItens() {
+    printf("\n--- ITENS NA MOCHILA (%d/%d) ---\n", 
+           quantidadeItens, CAPACIDADE_MAXIMA_MOCHILA);
+    printf("==============================================\n");
+    printf("NOME           | TIPO         | QUANTIDADE\n");
+    printf("----------------------------------------------\n");
+    
+    if (mochilaEstaVazia()) {
+        printf("          MOCHILA VAZIA\n");
+    } else {
+        for (int indice = 0; indice < quantidadeItens; indice++) {
+            printf("%-14s | %-12s | %-10d\n", 
+                   mochila[indice].nome, 
+                   mochila[indice].tipo, 
+                   mochila[indice].quantidade);
+        }
+    }
+    
+    printf("==============================================\n");
+}
+
+// Função para exibir o menu principal
+void exibirMenu() {
+    printf("\n==============================================\n");
+    printf("           MOCHILA DE SOBREVIVENCIA\n");
+    printf("              CODIGO DA ILHA\n");
+    printf("==============================================\n");
+    printf("Itens na Mochila: %d/%d\n", quantidadeItens, CAPACIDADE_MAXIMA_MOCHILA);
+    printf("----------------------------------------------\n");
+    printf("1. Adicionar Item (Loot)\n");
+    printf("2. Remover Item\n");
+    printf("3. Listar Itens na Mochila\n");
+    printf("0. Sair\n");
+    printf("----------------------------------------------\n");
+    printf("Escolha uma opcao: ");
+}
+
+// Função principal
+int main() {
+    int opcao;
+
+    printf("Bem-vindo ao Gerenciador de Mochila - Free Fire!\n");
+    
+    do {
+        exibirMenu();
+        scanf("%d", &opcao);
+        limparBufferEntrada();
+
+        switch (opcao) {
+            case 1: 
+                adicionarItem(); 
+                break;
+            case 2: 
+                removerItem(); 
+                break;
+            case 3: 
+                exibirItens(); 
+                break;
+            case 0: 
+                printf("\nSaindo do jogo... Ate a proxima!\n"); 
+                break;
+            default: 
+                printf("\n[ERRO] Opcao invalida! Tente novamente.\n");
+        }
+    } while (opcao != 0);
+
+    return 0;
+}
