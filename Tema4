@@ -1,0 +1,245 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define MAXIMO_JOGADORES 3
+#define MAXIMO_MISSOES 5
+#define TAMANHO_MAXIMO_NOME 30
+#define TAMANHO_MAXIMO_COR 10
+#define TAMANHO_MAXIMO_MISSAO 100
+#define TOTAL_TERRITORIOS 9
+#define MAXIMO_TURNOS 30
+
+typedef struct {
+    char nome[TAMANHO_MAXIMO_NOME];
+    char cor[TAMANHO_MAXIMO_COR];
+    int quantidadeTropas;
+} Territorio;
+
+typedef struct {
+    int identificador;
+    char cor[TAMANHO_MAXIMO_COR];
+    char *descricaoMissao;
+} Jogador;
+
+Jogador jogadores[MAXIMO_JOGADORES];
+
+char *missoesDisponiveis[MAXIMO_MISSOES] = {
+    "Conquistar 3 territorios seguidos",
+    "Eliminar todas as tropas da cor vermelha",
+    "Controlar 4 territorios",
+    "Ter mais tropas que qualquer outro jogador",
+    "Destruir completamente a cor azul"
+};
+
+char *nomesTerritorios[TOTAL_TERRITORIOS] = {
+    "Amazonia", "Nordeste", "Centro", "Sul", "Norte", "Oeste", "Leste", "Ilha", "Montanha"
+};
+
+char *coresIniciais[TOTAL_TERRITORIOS] = {
+    "vermelha", "azul", "verde", "vermelha", "amarela", "azul", "verde", "vermelha", "amarela"
+};
+
+int tropasIniciais[TOTAL_TERRITORIOS] = {5, 4, 6, 3, 2, 5, 7, 4, 6};
+
+char coresJogadores[MAXIMO_JOGADORES][TAMANHO_MAXIMO_COR] = {
+    "vermelha", "azul", "verde"
+};
+
+void atribuirMissaoAleatoria(char *destino, char *listaMissoes[], int totalMissoes) {
+    int indiceAleatorio = rand() % totalMissoes;
+    strcpy(destino, listaMissoes[indiceAleatorio]);
+}
+
+void exibirMissaoJogador(char *missao) {
+    printf("Missao: %s\n", missao);
+}
+
+int verificarMissaoTresTerritoriosConsecutivos(Territorio *mapa, int tamanhoMapa, char *corJogador) {
+    for (int indice = 0; indice < tamanhoMapa - 2; indice++) {
+        if (strcmp(mapa[indice].cor, corJogador) == 0 &&
+            strcmp(mapa[indice + 1].cor, corJogador) == 0 &&
+            strcmp(mapa[indice + 2].cor, corJogador) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int verificarMissaoEliminarCor(Territorio *mapa, int tamanhoMapa, char *corAlvo) {
+    for (int indice = 0; indice < tamanhoMapa; indice++) {
+        if (strcmp(mapa[indice].cor, corAlvo) == 0 && mapa[indice].quantidadeTropas > 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int verificarMissaoControlarTerritorios(Territorio *mapa, int tamanhoMapa, char *corJogador, int minimoTerritorios) {
+    int territoriosControlados = 0;
+    for (int indice = 0; indice < tamanhoMapa; indice++) {
+        if (strcmp(mapa[indice].cor, corJogador) == 0) {
+            territoriosControlados++;
+        }
+    }
+    return territoriosControlados >= minimoTerritorios;
+}
+
+int verificarMissaoMaisTropas(Territorio *mapa, int tamanhoMapa, char *corJogador) {
+    int totalTropasJogador = 0;
+    for (int indice = 0; indice < tamanhoMapa; indice++) {
+        if (strcmp(mapa[indice].cor, corJogador) == 0) {
+            totalTropasJogador += mapa[indice].quantidadeTropas;
+        }
+    }
+    return totalTropasJogador >= 30;
+}
+
+int verificarCompletudeMissao(char *missao, Territorio *mapa, int tamanhoMapa, char *corJogador) {
+    if (strstr(missao, "3 territorios seguidos")) {
+        return verificarMissaoTresTerritoriosConsecutivos(mapa, tamanhoMapa, corJogador);
+    }
+    if (strstr(missao, "vermelha")) {
+        return verificarMissaoEliminarCor(mapa, tamanhoMapa, "vermelha");
+    }
+    if (strstr(missao, "Controlar 4 territorios")) {
+        return verificarMissaoControlarTerritorios(mapa, tamanhoMapa, corJogador, 4);
+    }
+    if (strstr(missao, "mais tropas")) {
+        return verificarMissaoMaisTropas(mapa, tamanhoMapa, corJogador);
+    }
+    if (strstr(missao, "azul")) {
+        return verificarMissaoEliminarCor(mapa, tamanhoMapa, "azul");
+    }
+    return 0;
+}
+
+void executarAtaque(Territorio *atacante, Territorio *defensor) {
+    if (strcmp(atacante->cor, defensor->cor) == 0) {
+        printf("Nao pode atacar territorio da mesma cor.\n");
+        return;
+    }
+    if (atacante->quantidadeTropas < 2) {
+        printf("Poucas tropas para atacar.\n");
+        return;
+    }
+
+    int dadoAtacante = (rand() % 6) + 1;
+    int dadoDefensor = (rand() % 6) + 1;
+
+    printf("Ataque %s(%d) x %s(%d) -> dados A=%d D=%d\n",
+           atacante->nome, atacante->quantidadeTropas, 
+           defensor->nome, defensor->quantidadeTropas, 
+           dadoAtacante, dadoDefensor);
+
+    if (dadoAtacante > dadoDefensor) {
+        int tropasParaMover = atacante->quantidadeTropas / 2;
+        if (tropasParaMover < 1) tropasParaMover = 1;
+        
+        strcpy(defensor->cor, atacante->cor);
+        defensor->quantidadeTropas = tropasParaMover;
+        atacante->quantidadeTropas -= tropasParaMover;
+        
+        if (atacante->quantidadeTropas < 1) atacante->quantidadeTropas = 1;
+        printf("Conquistou!\n");
+    } else {
+        atacante->quantidadeTropas--;
+        if (atacante->quantidadeTropas < 1) atacante->quantidadeTropas = 1;
+        printf("Defesa venceu.\n");
+    }
+}
+
+void exibirEstadoMapa(Territorio *mapa, int totalTerritorios) {
+    printf("\nMAPA:\n");
+    for (int indice = 0; indice < totalTerritorios; indice++) {
+        printf("%d - %s | %s | tropas=%d\n", 
+               indice, mapa[indice].nome, mapa[indice].cor, mapa[indice].quantidadeTropas);
+    }
+}
+
+void inicializarMapa(Territorio *mapa, int totalTerritorios) {
+    for (int indice = 0; indice < totalTerritorios; indice++) {
+        strcpy(mapa[indice].nome, nomesTerritorios[indice]);
+        strcpy(mapa[indice].cor, coresIniciais[indice]);
+        mapa[indice].quantidadeTropas = tropasIniciais[indice];
+    }
+}
+
+void inicializarJogadores() {
+    for (int indice = 0; indice < MAXIMO_JOGADORES; indice++) {
+        jogadores[indice].identificador = indice + 1;
+        strcpy(jogadores[indice].cor, coresJogadores[indice]);
+        jogadores[indice].descricaoMissao = (char*) malloc(TAMANHO_MAXIMO_MISSAO * sizeof(char));
+        atribuirMissaoAleatoria(jogadores[indice].descricaoMissao, missoesDisponiveis, MAXIMO_MISSOES);
+        printf("\nJogador %d (%s): ", jogadores[indice].identificador, jogadores[indice].cor);
+        exibirMissaoJogador(jogadores[indice].descricaoMissao);
+    }
+}
+
+void liberarRecursos(Territorio *mapa) {
+    if (mapa) free(mapa);
+    for (int indice = 0; indice < MAXIMO_JOGADORES; indice++) {
+        if (jogadores[indice].descricaoMissao) {
+            free(jogadores[indice].descricaoMissao);
+        }
+    }
+}
+
+void executarTurnoAtaques(Territorio *mapa, int tamanhoMapa) {
+    for (int indiceJogador = 0; indiceJogador < MAXIMO_JOGADORES; indiceJogador++) {
+        int indiceAtacante = rand() % tamanhoMapa;
+        int indiceDefensor = rand() % tamanhoMapa;
+        
+        if (strcmp(mapa[indiceAtacante].cor, jogadores[indiceJogador].cor) != 0) continue;
+        if (strcmp(mapa[indiceDefensor].cor, jogadores[indiceJogador].cor) == 0) continue;
+        
+        executarAtaque(&mapa[indiceAtacante], &mapa[indiceDefensor]);
+    }
+}
+
+int verificarVencedor(Territorio *mapa, int tamanhoMapa) {
+    for (int indiceJogador = 0; indiceJogador < MAXIMO_JOGADORES; indiceJogador++) {
+        if (verificarCompletudeMissao(jogadores[indiceJogador].descricaoMissao, mapa, tamanhoMapa, jogadores[indiceJogador].cor)) {
+            return indiceJogador;
+        }
+    }
+    return -1;
+}
+
+int main() {
+    srand(time(NULL));
+
+    int tamanhoMapa = TOTAL_TERRITORIOS;
+    Territorio *mapa = (Territorio*) malloc(sizeof(Territorio) * tamanhoMapa);
+    if (!mapa) {
+        printf("Erro na memoria.\n");
+        return 1;
+    }
+
+    inicializarMapa(mapa, tamanhoMapa);
+    inicializarJogadores();
+    exibirEstadoMapa(mapa, tamanhoMapa);
+
+    int vencedor = -1;
+    for (int turno = 1; turno <= MAXIMO_TURNOS; turno++) {
+        printf("\nTurno %d\n", turno);
+
+        executarTurnoAtaques(mapa, tamanhoMapa);
+        exibirEstadoMapa(mapa, tamanhoMapa);
+
+        vencedor = verificarVencedor(mapa, tamanhoMapa);
+        if (vencedor != -1) {
+            printf("\nJogador %d venceu! Missao: %s\n",
+                   jogadores[vencedor].identificador, jogadores[vencedor].descricaoMissao);
+            break;
+        }
+    }
+
+    if (vencedor == -1) {
+        printf("\nNinguem completou a missao.\n");
+    }
+
+    liberarRecursos(mapa);
+    return 0;
+}
